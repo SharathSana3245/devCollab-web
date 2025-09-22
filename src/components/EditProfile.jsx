@@ -3,18 +3,18 @@ import UserCard from "./UserCard";
 import axios from "axios";
 import { addUser } from "../utils/userSlice";
 import { useDispatch } from "react-redux";
+import { BASE_URL } from "../constants";
 
 const EditProfile = ({ user }) => {
   const [userData, setUserData] = useState(user);
   console.log(userData, "userData");
-  const[showToast, setShowToast] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const dispatch = useDispatch();
   const handleUpdateProfile = async () => {
     try {
       const res = await axios.patch(
-        "http://localhost:3000/profile/edit",
-
+        `${BASE_URL}/profile/edit`,
         {
           photoUrl: userData.photoUrl,
           skills: userData.skils,
@@ -119,11 +119,13 @@ const EditProfile = ({ user }) => {
         </div>
       </div>
       <UserCard user={userData} showAction={false} />
-      {showToast &&<div className="toast toast-top toast-center">
-        <div className="alert alert-info">
-          <span>Profile Updated Successfully</span>
+      {showToast && (
+        <div className="toast toast-top toast-center">
+          <div className="alert alert-info">
+            <span>Profile Updated Successfully</span>
+          </div>
         </div>
-      </div>}
+      )}
     </div>
   );
 };
