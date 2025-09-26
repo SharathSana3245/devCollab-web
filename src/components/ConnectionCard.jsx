@@ -1,7 +1,9 @@
+import { Link } from "react-router-dom";
 import { BASE_PHOTO_URL } from "../constants";
 
 const ConnectionCard = ({ user }) => {
-  const { firstName, lastName, photoUrl, about, age, gender } = user;
+  console.log(user, "user in connection card");
+  const { firstName, lastName, photoUrl, about, age, gender, _id } = user;
 
   return (
     <div className="flex items-center justify-between gap-4 border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-300 bg-white">
@@ -22,10 +24,11 @@ const ConnectionCard = ({ user }) => {
           <span className="text-sm text-gray-600 line-clamp-2">{about}</span>
         </div>
       </div>
-
-      <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
-        Chat
-      </button>
+      <Link to={`/chat/${_id}`} state={{ name: `${firstName} ${lastName}` }}>
+        <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+          Chat
+        </button>
+      </Link>
     </div>
   );
 };
