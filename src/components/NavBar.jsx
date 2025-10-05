@@ -63,6 +63,9 @@ const NavBar = () => {
               <li onClick={() => navigate("/requests")}>
                 <a>Requests</a>
               </li>
+               <li onClick={() => navigate("/messages")}>
+                <a>Messages</a>
+              </li>
               <li onClick={() => navigate("/connections")}>
                 <a>Connections</a>
               </li>

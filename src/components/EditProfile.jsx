@@ -7,7 +7,6 @@ import { BASE_URL } from "../constants";
 
 const EditProfile = ({ user }) => {
   const [userData, setUserData] = useState(user);
-  console.log(userData, "userData");
   const [showToast, setShowToast] = useState(false);
 
   const dispatch = useDispatch();
@@ -32,7 +31,6 @@ const EditProfile = ({ user }) => {
       setTimeout(() => {
         setShowToast(false);
       }, 3000);
-      console.log(res.data, "updated user data");
     } catch (err) {
       console.error(err);
     }

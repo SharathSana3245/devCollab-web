@@ -1,15 +1,13 @@
-// Responsive Chat Window component (React) using JSX with Tailwind CSS + DaisyUI
 
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { createSocketConnection } from "../utils/socket";
 import { useSelector } from "react-redux";
+import { BASE_URL } from "../constants";
+import axios from "axios";
+import { Link } from "react-router-dom";
 
-export default function ChatWindow({
-  title = "Chat",
-  subtitle = "Online",
-  typing = false,
-}) {
+export default function ChatWindow({ typing = false }) {
   const location = useLocation();
   const [messages, setMessages] = useState([]);
   const { name } = location.state || {};
@@ -18,12 +16,53 @@ export default function ChatWindow({
   const loggedInUser = useSelector((store) => store.user);
   const loggedInUserId = loggedInUser?._id;
   const [newMessage, setNewMessage] = useState("");
+  const [participants, setParticipants] = useState([]);
 
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const fetchChat = async () => {
+    try {
+      const chats = await axios.post(
+        `${BASE_URL}/chat`,
+        {
+          targetUserId: targetUserId,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+      const chatMessages = chats?.data?.messages.map((msg) => ({
+        from: `${msg?.sender.firstName}`,
+        senderId: msg?.sender._id,
+        message: msg?.message,
+      }));
+      setMessages(chatMessages);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchParticipants = async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/participants`, {
+        withCredentials: true,
+      });
+      setParticipants(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (targetUserId) {
+      fetchChat();
+    }
+    fetchParticipants();
+  }, [targetUserId]);
 
   useEffect(() => {
     if (!loggedInUserId || !targetUserId) {
@@ -32,8 +71,8 @@ export default function ChatWindow({
     const socket = createSocketConnection();
     socket.emit("joinChat", { loggedInUserId, targetUserId });
     socket.on("receiveMessage", (message) => {
-      console.log("Message received: ", message);
       setMessages((prevMessages) => [...prevMessages, message]);
+      fetchParticipants();
     });
     return () => {
       socket.disconnect();
@@ -49,173 +88,147 @@ export default function ChatWindow({
       targetUserId,
       message: newMessage,
     });
-    // setMessages((prevMessages) => [
-    //   ...prevMessages,
-    //   {
-    //     message: newMessage,
-    //     from: loggedInUser.firstName,
-    //     senderId: loggedInUserId,
-    //   },
-    // ]);
     setNewMessage("");
+    fetchParticipants();
   };
   return (
-    <div className="w-full max-w-4xl mx-auto h-[80vh] md:h-[70vh] bg-base-100 shadow-lg rounded-lg overflow-scroll flex flex-col">
-      {/* Header */}
-      <header className="flex items-center gap-3 p-4 border-b bg-base-200">
-        <div className="avatar">
-          <div className="w-10 h-10 rounded-full bg-neutral text-neutral-content flex items-center justify-center">
-            {title.charAt(0).toUpperCase()}
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm md:text-base truncate">
-            {title}
-          </div>
-          <div className="text-xs opacity-70 truncate">{subtitle}</div>
-        </div>
-        <div className="hidden md:flex items-center gap-2">
-          <button className="btn btn-ghost btn-sm">Details</button>
-          <button className="btn btn-ghost btn-sm">Search</button>
-          <button className="btn btn-ghost btn-sm">Close</button>
-        </div>
-      </header>
-
-      {/* Body */}
-      <main className="flex-1 md:flex md:flex-row min-h-0">
-        {/* Sidebar */}
-        <aside className="hidden md:block md:w-56 border-r bg-base-100 p-3 overflow-auto">
-          <div className="text-xs text-muted mb-2">Participants</div>
-          <ul className="space-y-2">
-            <li className="flex items-center gap-2">
-              <div className="avatar">
-                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
-                  T
+    <div className="w-full bg-base-100 rounded-lg flex flex-col">
+      <main className="flex">
+        <aside className="hidden md:block md:w-56 bg-base-100 p-3 overflow-auto">
+          <div className="text-xs text-muted mb-2 text-xl">Participants</div>
+          {participants?.map((participant) => (
+            <Link
+              key={participant._id.toString()}
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-200 cursor-pointer"
+              to={`/chat/${participant?.participant?._id}`}
+              state={{ name: participant?.participant?.firstName }}
+            >
+              <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-accent-content">
+                {participant?.participant?.firstName?.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <div className="font-medium">
+                  {participant?.participant?.firstName}
+                </div>
+                <div className="text-sm text-muted">
+                  {participant?.lastMessage?.message || "No messages yet"}
                 </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm truncate">Teammate</div>
-                <div className="text-xs opacity-60 truncate">
-                  Last seen 2h ago
-                </div>
-              </div>
-            </li>
-            <li className="flex items-center gap-2">
-              <div className="avatar">
-                <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center">
-                  A
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm truncate">Admin</div>
-                <div className="text-xs opacity-60 truncate">Online</div>
-              </div>
-            </li>
-          </ul>
+            </Link>
+          ))}
         </aside>
-
         {/* Message list */}
-        <section className="flex-1 p-3 md:p-6 flex flex-col min-h-0">
-          <div ref={listRef} className="flex-1 overflow-auto space-y-4 pb-4">
-            <p className="text-xl">{name}</p>
-            {messages.length === 0 && (
-              <div className="text-center opacity-60 mt-12">
-                No messages yet — say hi 👋
+        <section className="flex-1 flex flex-col max-h-[80vh] p-4 pt-0 pl-0 min-h-[80vh] border-l border-gray-300">
+          {targetUserId ? (
+            <div className="flex flex-col h-full">
+              <div ref={listRef} className="flex-1 space-y-4 pb-4">
+                <header className="flex items-center gap-3 z-10 bg-base-100 w-full h-16 border-b border-gray-300 bg-white m-0">
+                  <div className="flex items-center gap-3 p-2">
+                    <p className="text-xl">{name}</p>
+                  </div>
+                </header>
+
+                {messages.length === 0 && (
+                  <div className="text-center opacity-60 mt-12">
+                    No messages yet — say hi 👋
+                  </div>
+                )}
+                <div className="overflow-y-auto max-h-[65vh] bg-cover bg-center rounded-lg p-4">
+                  {messages.map((m, index) => (
+                    <MessageBubble
+                      key={index}
+                      message={m}
+                      loggedInUserId={loggedInUserId}
+                    />
+                  ))}
+                </div>
+
+                {typing && (
+                  <div className="flex items-center gap-2">
+                    <div className="avatar">
+                      <div className="w-8 h-8 rounded-full bg-accent text-accent-content flex items-center justify-center">
+                        T
+                      </div>
+                    </div>
+                    <div className="bg-base-200 px-3 py-2 rounded-lg text-sm">
+                      Typing<span className="animate-pulse">...</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+              <div className="mt-3 md:mt-4">
+                <div className="flex items-end gap-2">
+                  <button
+                    className="btn btn-ghost btn-square md:hidden"
+                    aria-label="open menu"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M4 6h16M4 12h16M4 18h16"
+                      />
+                    </svg>
+                  </button>
 
-            {messages.map((m, index) => (
-              <MessageBubble
-                key={index}
-                message={m}
-                loggedInUserId={loggedInUserId}
-              />
-              //   <p>{message.message}</p>
-            ))}
+                  <div className="flex-1">
+                    <textarea
+                      rows={1}
+                      placeholder="Write a message... (Enter to send, Shift+Enter for newline)"
+                      className="textarea textarea-bordered w-full resize-none min-h-[44px] max-h-36"
+                      aria-label="Message input"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSend();
+                        }
+                      }}
+                    />
+                  </div>
 
-            {typing && (
-              <div className="flex items-center gap-2">
-                <div className="avatar">
-                  <div className="w-8 h-8 rounded-full bg-accent text-accent-content flex items-center justify-center">
-                    T
+                  <div className="flex items-center gap-2">
+                    <label className="btn btn-square" title="Attach file">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.828a4 4 0 10-5.656-5.657L6.343 10.172a6 6 0 108.485 8.485L21 12.485"
+                        />
+                      </svg>
+                    </label>
+
+                    <button
+                      onClick={handleSend}
+                      className="btn btn-primary"
+                      aria-label="Send message"
+                    >
+                      Send
+                    </button>
                   </div>
                 </div>
-                <div className="bg-base-200 px-3 py-2 rounded-lg text-sm">
-                  Typing<span className="animate-pulse">...</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Input area */}
-          <div className="mt-3 md:mt-4">
-            <div className="flex items-end gap-2">
-              <button
-                className="btn btn-ghost btn-square md:hidden"
-                aria-label="open menu"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-              </button>
-
-              <div className="flex-1">
-                <textarea
-                  rows={1}
-                  placeholder="Write a message... (Enter to send, Shift+Enter for newline)"
-                  className="textarea textarea-bordered w-full resize-none min-h-[44px] max-h-36"
-                  aria-label="Message input"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend()
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="btn btn-square" title="Attach file">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.828a4 4 0 10-5.656-5.657L6.343 10.172a6 6 0 108.485 8.485L21 12.485"
-                    />
-                  </svg>
-                </label>
-
-                <button
-                  onClick={handleSend}
-                  className="btn btn-primary"
-                  aria-label="Send message"
-
-                >
-                  Send
-                </button>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-3xl">Say hello!</p>
+            </div>
+          )}
         </section>
       </main>
     </div>

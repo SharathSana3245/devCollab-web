@@ -1,7 +1,7 @@
-import socketIOClient from "socket.io-client";
+
 import { BASE_URL } from "../constants";
+import io from 'socket.io-client'
 
 export const createSocketConnection = () => {
-    console.log("Creating socket connection to ", BASE_URL);
-  return socketIOClient(BASE_URL);
+  return io(BASE_URL);
 }

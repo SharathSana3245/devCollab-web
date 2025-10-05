@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { BASE_PHOTO_URL } from "../constants";
 
 const ConnectionCard = ({ user }) => {
-  console.log(user, "user in connection card");
   const { firstName, lastName, photoUrl, about, age, gender, _id } = user;
 
   return (

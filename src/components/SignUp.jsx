@@ -14,7 +14,6 @@ const SignUp = () => {
       const res = await axios.post(`${BASE_URL}/signup`, creds, {
         withCredentials: true,
       });
-      console.log(res, "signup response");
       if (res.status === 200) {
         setShowToast({
           message: "SignUp Successful!! Redirecting to Login...",

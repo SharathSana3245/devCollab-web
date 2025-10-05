@@ -27,6 +27,7 @@ function App() {
                 <Route path="/connections" element={<Connections />} />
                 <Route path="/requests" element={<Requests />} />
                 <Route path="/chat/:targetUserId" element={<ChatWindow />} />
+                <Route path="/messages" element={<ChatWindow />} />
               </Route>
             </Routes>
           </BrowserRouter>

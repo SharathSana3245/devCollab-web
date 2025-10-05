@@ -18,7 +18,6 @@ const Feed = () => {
       });
       setLoading(false);
       dispatch(addFeed(res.data?.data || []));
-      console.log(res.data, "feed data");
     } catch (err) {
       console.error(err);
     }

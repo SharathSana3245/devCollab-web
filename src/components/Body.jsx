@@ -30,11 +30,14 @@ const Body = () => {
   }, []);
   return (
     <div className="flex flex-col min-h-screen">
-      <NavBar />
-      <main className="flex-grow">
+      <div className="sticky top-0 z-50">
+         <NavBar />
+      </div>
+     
+      <main>
         <Outlet />
       </main>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 };

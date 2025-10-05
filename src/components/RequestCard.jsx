@@ -3,7 +3,6 @@ import React from "react";
 import { BASE_PHOTO_URL, BASE_URL } from "../constants";
 
 const RequestCard = ({ user, onRequestAction, setToast }) => {
-  console.log("USER IN REQUEST CARD", user);
   const { firstName, lastName, about, photoUrl, gender, age } =
     user.fromUserId || {};
   const { createdAt } = user || {};
@@ -34,7 +33,6 @@ const RequestCard = ({ user, onRequestAction, setToast }) => {
       console.error("Error reviewing connection:", err);
     }
   };
-console.log("USER IN REQUEST CARD", user);
   return (
     <div className="card bg-base-100 shadow-md w-full max-w-lg hover:shadow-lg transition-shadow duration-300">
       <div className="flex items-center gap-6 p-6">

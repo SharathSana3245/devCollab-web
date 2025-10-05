@@ -4,7 +4,6 @@ import EditProfile from "./EditProfile";
 
 const Profile = () => {
   const user = useSelector((state) => state.user);
-  console.log(user, "user in profile");
 
   return (
     <>
