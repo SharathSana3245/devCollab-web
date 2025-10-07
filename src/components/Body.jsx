@@ -18,9 +18,9 @@ const Body = () => {
       });
       return dispatch(addUser(user.data));
     } catch (err) {
-     if(err.status === 401 || err.status === 400){
+      if (err.status === 401 || err.status === 400) {
         return navigate("/login");
-     }
+      }
       console.error(err);
     }
   };
@@ -31,9 +31,9 @@ const Body = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <div className="sticky top-0 z-50">
-         <NavBar />
+        <NavBar />
       </div>
-     
+
       <main>
         <Outlet />
       </main>

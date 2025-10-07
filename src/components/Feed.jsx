@@ -9,6 +9,7 @@ import { BASE_URL } from "../constants";
 const Feed = () => {
   const dispatch = useDispatch();
   const feed = useSelector((store) => store.feed);
+  const loggedInUser = useSelector((store) => store.user);
   const [loading, setLoading] = useState(true);
   const fetchFeed = async () => {
     if (feed) return;
@@ -24,8 +25,10 @@ const Feed = () => {
   };
 
   useEffect(() => {
-    fetchFeed();
-  }, []);
+    if(loggedInUser){
+      fetchFeed();
+    }
+  }, [loggedInUser]);
 
   return (
     <div className="flex flex-col justify-center items-center mt-10">
