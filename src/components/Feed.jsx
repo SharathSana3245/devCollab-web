@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { addFeed } from "../utils/feedSlice";
 import { useDispatch } from "react-redux";

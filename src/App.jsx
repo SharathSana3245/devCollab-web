@@ -10,7 +10,7 @@ import Profile from "./components/Profile";
 import Connections from "./components/Connections";
 import Requests from "./components/Requests";
 import { ToastProvider } from "./common/Toast";
-import ChatWindow from "./components/Chatwindow";
+import ChatWindow from "./components/ChatWindow";
 
 function App() {
   return (
@@ -26,7 +26,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/connections" element={<Connections />} />
                 <Route path="/requests" element={<Requests />} />
-                <Route path="/chat/:targetUserId" element={<ChatWindow />} />
+                <Route path="/chat/:targetUserId" state={{ isGroupChat: false }} element={<ChatWindow />} />
                 <Route path="/messages" element={<ChatWindow />} />
               </Route>
             </Routes>

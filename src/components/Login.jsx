@@ -31,7 +31,7 @@ const Login = () => {
           <h2 className="card-title flex justify-center text-bold">Login</h2>
 
           <fieldset className="fieldset">
-            <legend className="fieldset-legend ">Email</legend>
+            <legend className="fieldset-legend ">Gmail</legend>
             <input
               type="text"
               className="input w-full"
@@ -39,6 +39,7 @@ const Login = () => {
               onChange={(e) => {
                 setCreds({ ...creds, emailId: e.target.value });
               }}
+              placeholder="Please enter your Gmail"
             />
           </fieldset>
           <fieldset className="fieldset">

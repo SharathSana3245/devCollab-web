@@ -4,19 +4,23 @@ import { createSocketConnection } from "../utils/socket";
 import { useSelector } from "react-redux";
 import { BASE_URL } from "../constants";
 import axios from "axios";
+import { CreateGroupChat } from "./CreateGroupChat";
 
 export default function ChatWindow({ typing = false }) {
   const location = useLocation();
-  const { name } = location.state || {};
+  const { name, isGroupChat } = location.state || {};
+
   const targetUserId = useParams().targetUserId;
+
   const loggedInUser = useSelector((store) => store.user);
   const loggedInUserId = loggedInUser?._id;
-
+  const [groupChat, setGroupChat] = useState(false);
   const [messages, setMessages] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
   const listRef = useRef(null);
+  //const connections = useSelector((store) => store.connections);
 
   // Auto-scroll messages
   useEffect(() => {
@@ -28,12 +32,19 @@ export default function ChatWindow({ typing = false }) {
   // Fetch chat messages
   const fetchChat = async () => {
     try {
-      const chats = await axios.post(
-        `${BASE_URL}/chat`,
-        { targetUserId },
-        { withCredentials: true }
-      );
+      const chats = !isGroupChat
+        ? await axios.post(
+            `${BASE_URL}/chat`,
+            { targetUserId },
+            { withCredentials: true }
+          )
+        : await axios.post(
+            `${BASE_URL}/chat/group`,
+            { targetUserId },
+            { withCredentials: true }
+          );
       const chatMessages = chats?.data?.messages.map((msg) => ({
+        timeStamp: msg?.createdAt,
         from: msg?.sender.firstName,
         senderId: msg?.sender._id,
         message: msg?.message,
@@ -43,7 +54,6 @@ export default function ChatWindow({ typing = false }) {
       console.error(err);
     }
   };
-
   // Fetch participants
   const fetchParticipants = async () => {
     try {
@@ -60,19 +70,37 @@ export default function ChatWindow({ typing = false }) {
   useEffect(() => {
     if (targetUserId) fetchChat();
     fetchParticipants();
-  }, [targetUserId]);
+  }, [targetUserId, isGroupChat]);
+
+  const generateChatId = (userId1, userId2) => {
+    return [userId1, userId2].sort().join("_");
+  };
+
+  // Format to 24-hour time
 
   // Socket connection
   useEffect(() => {
     if (!loggedInUserId || !targetUserId) return;
 
     const socket = createSocketConnection();
-    socket.emit("joinChat", { loggedInUserId, targetUserId });
+    if (!isGroupChat) {
+      socket.emit("joinChat", generateChatId(loggedInUserId, targetUserId));
+    } else {
+      socket.emit("joinGroupChat", targetUserId);
+    }
 
-    socket.on("receiveMessage", (message) => {
-      setMessages((prev) => [...prev, message]);
-      fetchParticipants();
-    });
+    if (isGroupChat) {
+      socket.on("receiveGroupMessage", (message) => {
+        console.log(message, "received group message");
+        setMessages((prev) => [...prev, message]);
+        fetchParticipants();
+      });
+    } else {
+      socket.on("receiveMessage", (message) => {
+        setMessages((prev) => [...prev, message]);
+        fetchParticipants();
+      });
+    }
 
     return () => socket.disconnect();
   }, [loggedInUserId, targetUserId]);
@@ -80,19 +108,26 @@ export default function ChatWindow({ typing = false }) {
   // Send message
   const handleSend = () => {
     if (newMessage.trim() === "") return;
-
     const socket = createSocketConnection();
-    socket.emit("sendMessage", {
-      firstName: loggedInUser.firstName,
-      loggedInUserId,
-      targetUserId,
-      message: newMessage,
-    });
+    if (isGroupChat) {
+      socket.emit("sendMessageGroup", {
+        chatId: targetUserId,
+        firstName: loggedInUser.firstName,
+        loggedInUserId,
+        message: newMessage,
+      });
+    } else {
+      socket.emit("sendMessage", {
+        firstName: loggedInUser.firstName,
+        loggedInUserId,
+        targetUserId,
+        message: newMessage,
+      });
+    }
 
     setNewMessage("");
     fetchParticipants();
   };
-
   return (
     <div className="flex flex-col h-screen bg-base-100 overflow-hidden">
       {/* Mobile Header */}
@@ -127,34 +162,70 @@ export default function ChatWindow({ typing = false }) {
             showSidebar ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
         >
-          <h2 className="text-lg font-semibold mb-4">Participants</h2>
-          <div className="flex-1 overflow-y-auto space-y-2 ">
-            {participants?.map((participant) => (
-              <Link
-                key={participant._id}
-                to={`/chat/${participant?.participant?._id}`}
-                state={{ name: participant?.participant?.firstName }}
-                onClick={() => setShowSidebar(false)}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-200"
-              >
-                <div className="w-10 h-10 rounded-full bg-accent text-accent-content flex items-center justify-center">
-                  {participant?.participant?.firstName?.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-medium">
-                    {participant?.participant?.firstName}
-                  </p>
-                  <p className="text-sm text-gray-500 truncate w-40">
-                    {participant?.lastMessage?.message || "No messages yet"}
-                  </p>
-                </div>
-              </Link>
-            ))}
+          <div className="flex items-center justify- mb-4">
+            <button
+              className="cursor-pointer"
+              onClick={() => {
+                setGroupChat(false);
+              }}
+            >
+              back
+            </button>
+            <h2 className="text-lg font-semibold">Participants</h2>
+            <button
+              className="cursor-pointer"
+              onClick={() => setGroupChat(true)}
+            >
+              Group chat
+            </button>
           </div>
+
+          {groupChat ? (
+            <CreateGroupChat />
+          ) : (
+            <div className="flex-1 overflow-y-auto space-y-2 ">
+              {participants?.map((participant) => (
+                <Link
+                  key={participant._id}
+                  to={
+                    participant?.isGroupChat
+                      ? `/chat/${participant?._id}`
+                      : `/chat/${participant?.participant?._id}`
+                  }
+                  state={{
+                    name: participant?.participant?.firstName,
+                    isGroupChat: participant?.isGroupChat,
+                    groupName: participant?.groupName,
+                  }}
+                  onClick={() => setShowSidebar(false)}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-base-200"
+                >
+                  <div className="w-10 h-10 rounded-full bg-accent text-accent-content flex items-center justify-center">
+                    {participant?.participant?.firstName
+                      ?.charAt(0)
+                      .toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-medium">
+                      {participant?.isGroupChat
+                        ? participant?.groupName
+                        : participant?.participant?.firstName}
+                    </p>
+                    <p className="text-sm text-gray-500 truncate w-40">
+                      {participant?.lastMessage?.message || "No messages yet"}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </aside>
 
         {/* Chat Section */}
-        <section className="flex-1 flex flex-col bg-base-100">
+        <section
+          className="flex-1 flex flex-col bg-base-100"
+          style={{ height: "calc(100vh - 64px)" }}
+        >
           {targetUserId ? (
             <>
               {/* Chat Header */}
@@ -172,51 +243,51 @@ export default function ChatWindow({ typing = false }) {
                 </div>
               </div>
 
-              <div className="'flex-1 flex flex-col [@media(min-width:702px)]:h-[80vh] h-[65vh]">
-                {/* Messages */}
-                <div
-                  ref={listRef}
-                 className="overflow-y-auto px-4 py-3 bg-gray-50 h-[65vh] [@media(min-width:702px)]:h-[80vh]"
-
-                >
-                  {messages.length === 0 ? (
-                    <div className="text-center text-gray-500 mt-10">
-                      No messages yet — say hi 👋
-                    </div>
-                  ) : (
-                    messages.map((m, index) => (
-                      <MessageBubble
-                        key={index}
-                        message={m}
-                        loggedInUserId={loggedInUserId}
-                      />
-                    ))
-                  )}
-                </div>
-
-                {/* Input */}
-                <div className="border-t border-gray-300 bg-white p-3 md:p-4">
-                  <div className="flex items-end gap-2">
-                    <textarea
-                      rows={1}
-                      placeholder="Write a message... (Enter to send)"
-                      className="textarea textarea-bordered w-full resize-none rounded-xl min-h-[44px] max-h-32 text-base"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSend();
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={handleSend}
-                      className="btn btn-primary px-4 md:px-6 text-white"
-                    >
-                      Send
-                    </button>
+              {/* Messages */}
+              <div
+                ref={listRef}
+                className="overflow-y-auto px-4 py-3 bg-gray-50"
+                style={{ height: "80%" }}
+              >
+                {messages.length === 0 ? (
+                  <div className="text-center text-gray-500 mt-10">
+                    No messages yet — say hi 👋
                   </div>
+                ) : (
+                  messages.map((m, index) => (
+                    <MessageBubble
+                      key={index}
+                      message={m}
+                      loggedInUserId={loggedInUserId}
+                      isGroupChat={isGroupChat}
+                    />
+                  ))
+                )}
+              </div>
+
+              {/* Input */}
+
+              <div className="border-t border-gray-300 bg-white p-3 md:p-4 border-b">
+                <div className="flex items-end gap-2">
+                  <textarea
+                    rows={1}
+                    placeholder="Write a message... (Enter to send)"
+                    className="textarea textarea-bordered w-full resize-none rounded-xl min-h-[44px] max-h-32 text-base"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={handleSend}
+                    className="btn btn-primary px-4 md:px-6 text-white"
+                  >
+                    Send
+                  </button>
                 </div>
               </div>
             </>
@@ -241,9 +312,18 @@ export default function ChatWindow({ typing = false }) {
   );
 }
 
-function MessageBubble({ message, loggedInUserId }) {
+function MessageBubble({ message, loggedInUserId, isGroupChat }) {
+  const timeStamp = (dateStamp) => {
+    if (!dateStamp) return "";
+    const date = new Date(dateStamp);
+    const timeString = date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    return timeString;
+  };
   const isOwn = message.senderId === loggedInUserId;
-
   return (
     <div className={`flex mb-3 ${isOwn ? "justify-end" : "justify-start"}`}>
       <div
@@ -253,7 +333,18 @@ function MessageBubble({ message, loggedInUserId }) {
             : "bg-gray-200 text-gray-800 rounded-bl-none"
         }`}
       >
+        {isGroupChat && !isOwn && (
+          <span className="font-semibold" style={{ color: "red" }}>
+            {message.from}
+          </span>
+        )}
         <p className="whitespace-pre-wrap break-words">{message.message}</p>
+        <span
+          className="font-semibold"
+          style={{ fontSize: "8px", float: "right" }}
+        >
+          {timeStamp(message.timeStamp)}
+        </span>
       </div>
     </div>
   );
