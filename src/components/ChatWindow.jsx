@@ -125,6 +125,10 @@ export default function ChatWindow({ typing = false }) {
       });
     }
 
+    setMessages((prev) => [
+      ...prev,
+      { message: newMessage, senderId: loggedInUserId },
+    ]);
     setNewMessage("");
     fetchParticipants();
   };
