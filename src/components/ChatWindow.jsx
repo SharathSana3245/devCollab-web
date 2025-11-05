@@ -4,11 +4,14 @@ import { createSocketConnection } from "../utils/socket";
 import { useSelector } from "react-redux";
 import { BASE_URL } from "../constants";
 import axios from "axios";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import { CreateGroupChat } from "./CreateGroupChat";
+import FileShare from "./FileShare";
 
-export default function ChatWindow({ typing = false }) {
+export default function ChatWindow() {
   const location = useLocation();
-  const { name, isGroupChat } = location.state || {};
+  const { name, isGroupChat, groupName } = location.state || {};
 
   const targetUserId = useParams().targetUserId;
 
@@ -124,11 +127,6 @@ export default function ChatWindow({ typing = false }) {
         message: newMessage,
       });
     }
-
-    setMessages((prev) => [
-      ...prev,
-      { message: newMessage, senderId: loggedInUserId },
-    ]);
     setNewMessage("");
     fetchParticipants();
   };
@@ -166,26 +164,26 @@ export default function ChatWindow({ typing = false }) {
             showSidebar ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
         >
-          <div className="flex items-center justify- mb-4">
-            <button
-              className="cursor-pointer"
-              onClick={() => {
-                setGroupChat(false);
-              }}
-            >
-              back
-            </button>
+          <div className="flex items-center justify-between mb-4">
+            {groupChat && (
+              <ArrowBackIcon
+                onClick={() => {
+                  setGroupChat(false);
+                }}
+                className="cursor-pointer"
+              />
+            )}
+
             <h2 className="text-lg font-semibold">Participants</h2>
-            <button
-              className="cursor-pointer"
+
+            <GroupAddIcon
               onClick={() => setGroupChat(true)}
-            >
-              Group chat
-            </button>
+              className="cursor-pointer"
+            />
           </div>
 
           {groupChat ? (
-            <CreateGroupChat />
+            <CreateGroupChat setGroupChat={setGroupChat} />
           ) : (
             <div className="flex-1 overflow-y-auto space-y-2 ">
               {participants?.map((participant) => (
@@ -235,15 +233,12 @@ export default function ChatWindow({ typing = false }) {
               {/* Chat Header */}
               <div className="sticky top-0 flex items-center gap-3 p-4 bg-white border-b border-gray-300 z-10">
                 <div className="w-10 h-10 rounded-full bg-accent text-accent-content flex items-center justify-center text-lg">
-                  {name?.charAt(0).toUpperCase()}
+                  DP
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">{name}</h2>
-                  {typing && (
-                    <p className="text-sm text-gray-500 animate-pulse">
-                      Typing...
-                    </p>
-                  )}
+                  <h2 className="text-lg font-semibold">
+                    {isGroupChat ? groupName : name}
+                  </h2>
                 </div>
               </div>
 
@@ -272,7 +267,8 @@ export default function ChatWindow({ typing = false }) {
               {/* Input */}
 
               <div className="border-t border-gray-300 bg-white p-3 md:p-4 border-b">
-                <div className="flex items-end gap-2">
+                <div className="flex items-end gap-2 align-items-center">
+                 <FileShare/>
                   <textarea
                     rows={1}
                     placeholder="Write a message... (Enter to send)"
