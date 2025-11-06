@@ -1,16 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams, Link } from "react-router-dom";
-import { createSocketConnection } from "../utils/socket";
+import { createSocketConnection } from "../../utils/socket";
 import { useSelector } from "react-redux";
-import { BASE_URL } from "../constants";
+import { BASE_URL } from "../../constants";
 import axios from "axios";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import { CreateGroupChat } from "./CreateGroupChat";
-import FileShare from "./FileShare";
+import ImageKit from "./FileShare";
+import MessageBubble from "./MessageBubble";
+import { generateChatId } from "./utils";
+import Menu from "@mui/material/Menu";
+import GroupChatDetails from "./GroupChatDetails";
 
 export default function ChatWindow() {
   const location = useLocation();
+  
+  
+
   const { name, isGroupChat, groupName } = location.state || {};
 
   const targetUserId = useParams().targetUserId;
@@ -23,9 +30,7 @@ export default function ChatWindow() {
   const [newMessage, setNewMessage] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
   const listRef = useRef(null);
-  //const connections = useSelector((store) => store.connections);
-
-  // Auto-scroll messages
+  const groupMenuRef = useRef(null);
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
@@ -51,6 +56,7 @@ export default function ChatWindow() {
         from: msg?.sender.firstName,
         senderId: msg?.sender._id,
         message: msg?.message,
+        messageType: msg?.messageType,
       }));
       setMessages(chatMessages);
     } catch (err) {
@@ -74,12 +80,6 @@ export default function ChatWindow() {
     if (targetUserId) fetchChat();
     fetchParticipants();
   }, [targetUserId, isGroupChat]);
-
-  const generateChatId = (userId1, userId2) => {
-    return [userId1, userId2].sort().join("_");
-  };
-
-  // Format to 24-hour time
 
   // Socket connection
   useEffect(() => {
@@ -109,8 +109,9 @@ export default function ChatWindow() {
   }, [loggedInUserId, targetUserId]);
 
   // Send message
-  const handleSend = () => {
-    if (newMessage.trim() === "") return;
+  const handleSend = (messageType = "text", customMessage) => {
+    const messageToSend = customMessage || newMessage;
+    if (messageToSend.trim() === "") return;
     const socket = createSocketConnection();
     if (isGroupChat) {
       socket.emit("sendMessageGroup", {
@@ -118,18 +119,22 @@ export default function ChatWindow() {
         firstName: loggedInUser.firstName,
         loggedInUserId,
         message: newMessage,
+        messageType,
       });
     } else {
       socket.emit("sendMessage", {
         firstName: loggedInUser.firstName,
         loggedInUserId,
         targetUserId,
-        message: newMessage,
+        message: messageToSend,
+        messageType,
       });
     }
     setNewMessage("");
     fetchParticipants();
   };
+  
+
   return (
     <div className="flex flex-col h-screen bg-base-100 overflow-hidden">
       {/* Mobile Header */}
@@ -208,11 +213,12 @@ export default function ChatWindow() {
                       .toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-medium">
+                    <p className="font-medium" id="group_details">
                       {participant?.isGroupChat
                         ? participant?.groupName
                         : participant?.participant?.firstName}
                     </p>
+
                     <p className="text-sm text-gray-500 truncate w-40">
                       {participant?.lastMessage?.message || "No messages yet"}
                     </p>
@@ -236,9 +242,17 @@ export default function ChatWindow() {
                   DP
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">
+                  <h2
+                    className={`text-lg font-semibold ${
+                      isGroupChat ? "cursor-pointer" : ""
+                    }`}
+                    onClick={isGroupChat
+                      ? (e) => groupMenuRef.current.openMenu(e)
+                      : null}
+                  >
                     {isGroupChat ? groupName : name}
                   </h2>
+                 
                 </div>
               </div>
 
@@ -268,7 +282,7 @@ export default function ChatWindow() {
 
               <div className="border-t border-gray-300 bg-white p-3 md:p-4 border-b">
                 <div className="flex items-end gap-2 align-items-center">
-                 <FileShare/>
+                  <ImageKit handleSendMessage={handleSend} />
                   <textarea
                     rows={1}
                     placeholder="Write a message... (Enter to send)"
@@ -300,7 +314,7 @@ export default function ChatWindow() {
           )}
         </section>
       </main>
-
+      <GroupChatDetails ref={groupMenuRef} isGroupChat={isGroupChat}/>
       {/* Mobile Overlay */}
       {showSidebar && (
         <div
@@ -308,44 +322,6 @@ export default function ChatWindow() {
           className="fixed inset-0 bg-black/40 md:hidden z-20"
         ></div>
       )}
-    </div>
-  );
-}
-
-function MessageBubble({ message, loggedInUserId, isGroupChat }) {
-  const timeStamp = (dateStamp) => {
-    if (!dateStamp) return "";
-    const date = new Date(dateStamp);
-    const timeString = date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-    return timeString;
-  };
-  const isOwn = message.senderId === loggedInUserId;
-  return (
-    <div className={`flex mb-3 ${isOwn ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[75%] md:max-w-[60%] p-3 rounded-2xl text-sm ${
-          isOwn
-            ? "bg-blue-600 text-white rounded-br-none"
-            : "bg-gray-200 text-gray-800 rounded-bl-none"
-        }`}
-      >
-        {isGroupChat && !isOwn && (
-          <span className="font-semibold" style={{ color: "red" }}>
-            {message.from}
-          </span>
-        )}
-        <p className="whitespace-pre-wrap break-words">{message.message}</p>
-        <span
-          className="font-semibold"
-          style={{ fontSize: "8px", float: "right" }}
-        >
-          {timeStamp(message.timeStamp)}
-        </span>
-      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { addConnections } from "../utils/connectionsSlice";
-import { BASE_URL } from "../constants";
+import { addConnections } from "../../utils/connectionsSlice";
+import { BASE_URL } from "../../constants";
 import Button from "@mui/material/Button";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
