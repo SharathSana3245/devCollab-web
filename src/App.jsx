@@ -10,7 +10,7 @@ import Profile from "./components/Profile";
 import Connections from "./components/Connections";
 import Requests from "./components/Requests";
 import { ToastProvider } from "./common/Toast";
-import ChatWindow from "./components/ChatWindow";
+import ChatWindow from "./components/chat/ChatWindow";
 
 function App() {
   return (

@@ -15,8 +15,6 @@ import GroupChatDetails from "./GroupChatDetails";
 
 export default function ChatWindow() {
   const location = useLocation();
-  
-  
 
   const { name, isGroupChat, groupName } = location.state || {};
 
@@ -94,7 +92,6 @@ export default function ChatWindow() {
 
     if (isGroupChat) {
       socket.on("receiveGroupMessage", (message) => {
-        console.log(message, "received group message");
         setMessages((prev) => [...prev, message]);
         fetchParticipants();
       });
@@ -118,7 +115,7 @@ export default function ChatWindow() {
         chatId: targetUserId,
         firstName: loggedInUser.firstName,
         loggedInUserId,
-        message: newMessage,
+        message: messageToSend,
         messageType,
       });
     } else {
@@ -133,7 +130,6 @@ export default function ChatWindow() {
     setNewMessage("");
     fetchParticipants();
   };
-  
 
   return (
     <div className="flex flex-col h-screen bg-base-100 overflow-hidden">
@@ -246,13 +242,14 @@ export default function ChatWindow() {
                     className={`text-lg font-semibold ${
                       isGroupChat ? "cursor-pointer" : ""
                     }`}
-                    onClick={isGroupChat
-                      ? (e) => groupMenuRef.current.openMenu(e)
-                      : null}
+                    onClick={
+                      isGroupChat
+                        ? (e) => groupMenuRef.current.openMenu(e)
+                        : null
+                    }
                   >
                     {isGroupChat ? groupName : name}
                   </h2>
-                 
                 </div>
               </div>
 
@@ -314,7 +311,7 @@ export default function ChatWindow() {
           )}
         </section>
       </main>
-      <GroupChatDetails ref={groupMenuRef} isGroupChat={isGroupChat}/>
+      <GroupChatDetails ref={groupMenuRef} isGroupChat={isGroupChat} />
       {/* Mobile Overlay */}
       {showSidebar && (
         <div

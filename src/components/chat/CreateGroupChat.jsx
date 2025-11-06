@@ -7,6 +7,8 @@ import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import axios from "axios";
+import Toast from "../Toast";
+import { showToast } from "../../utils/notificationSlice";
 
 export const CreateGroupChat = ({ setGroupChat }) => {
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -57,6 +59,7 @@ export const CreateGroupChat = ({ setGroupChat }) => {
       );
       setGroupChat(false);
       console.log(res?.data, "group chat created");
+      dispatch(showToast({ message: "Group Created Successfully!" }));
     } catch (err) {
       console.error(err);
     }

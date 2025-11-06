@@ -14,7 +14,6 @@ export default function MessageBubble({
       hour12: false,
     });
   };
-
   const isOwnMessage = message.senderId === loggedInUserId;
 
   const bubbleBaseClasses =
@@ -27,9 +26,10 @@ export default function MessageBubble({
     : "bg-gray-200 text-gray-800 rounded-bl-none";
 
   return (
-    <div className={`flex mb-3 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+    <div
+      className={`flex mb-3 ${isOwnMessage ? "justify-end" : "justify-start"}`}
+    >
       <div className={`${bubbleBaseClasses} ${bubbleColorClasses}`}>
-        
         {/* Group chat sender label */}
         {isGroupChat && !isOwnMessage && (
           <span className="font-semibold text-red-600 block mb-1">
@@ -45,9 +45,7 @@ export default function MessageBubble({
             className="w-60 h-60 object-cover rounded-lg"
           />
         ) : (
-          <p className="whitespace-pre-wrap break-words">
-            {message.message}
-          </p>
+          <p className="whitespace-pre-wrap break-words">{message.message}</p>
         )}
 
         {/* Timestamp */}
